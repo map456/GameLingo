@@ -133,6 +133,12 @@ final class StudyWindows {
         // SwiftUI 算出內容需要多高（翻面、查字時會變），視窗就跟著改高度，不用自己捲動
         host.sizingOptions = [.preferredContentSize]
         w.contentViewController = host
+        // 深色漸層外觀：標題列透明，內容延伸到最上方（紅黃綠按鈕浮在漸層上）
+        w.styleMask.insert(.fullSizeContentView)
+        w.titlebarAppearsTransparent = true
+        w.titleVisibility = .hidden
+        w.isMovableByWindowBackground = true
+        w.appearance = NSAppearance(named: .darkAqua)
         sizeObservation = host.observe(\.preferredContentSize, options: [.initial, .new]) { [weak w] host, _ in
             let size = host.preferredContentSize
             DispatchQueue.main.async {

@@ -10,6 +10,15 @@ floating window. Click any word to see its definition and word roots, save it, a
 spaced-repetition flashcards. **Everything runs on your Mac**: no cloud, no account, and nothing changes
 in OpenEmu or your ROMs.
 
+### Why GameLingo
+
+GameLingo was made by a longtime retro gamer. Many of the classic RPGs we grew up with were best in their
+English versions, full of witty writing, regional accents and old-fashioned words, but stopping every few
+lines to look things up kills the fun. GameLingo lets you **keep playing the old games you love while
+picking up English along the way**: the translation appears right beside the game, any word you are
+curious about is one click away, and the words you save come back as flashcards built from the very line
+you saw them in. Learning from a story you care about sticks far better than memorizing a word list.
+
 ### Features
 
 - **Auto translation**: detects the dialogue box, waits until the text stops typing, then OCRs it (Apple Vision) and translates it (Seed-X-PPO-7B on MLX, about 0.5 s per line).
@@ -17,7 +26,7 @@ in OpenEmu or your ROMs.
 - **Proper nouns stay in English** (placeholder protection plus your own name list).
 - **Click-to-define**: ECDICT definitions converted to Taiwan Traditional Chinese, pronunciation, and word-root breakdown (MorphoLex), e.g. `dis- + appear + -ance`.
 - **💡 Context explanation**: asks the model to explain the dialect, grammar and word choice of a line (about 15 s).
-- **Word book and flashcards**: meaning cards and cloze cards built from the game sentence, scheduled with SM-2, plus same-root word families.
+- **Word book and flashcards**: meaning cards and cloze cards built from the game sentence, scheduled with SM-2, plus same-root word families. Type the answer on cloze cards, type a forgotten word to reinforce it, practise extra rounds without touching the schedule, and delete cards you no longer need.
 - **Frees about 8 GB of memory** when OpenEmu is closed; settings window; launch at login.
 
 ### Requirements
@@ -56,6 +65,12 @@ GameLingo does not include any game ROMs or assets.
 ## 繁體中文說明
 
 玩 OpenEmu 上的英文遊戲時，自動（或按快捷鍵）擷取對話框，**在本機**翻成繁體中文，並在浮動視窗裡中英對照顯示。可以點單字查詢、看字根拆解、收藏，再用單字卡（SM-2）複習。全程離線，不修改 OpenEmu 或 ROM。
+
+### 為什麼做這個
+
+作者是一個玩了很多年的遊戲老玩家。小時候玩過的經典 RPG，很多英文版其實寫得最精彩：俏皮的台詞、各地口音、古老的用字。但每看幾句就停下來查字典，遊戲的樂趣也跟著沒了。
+
+GameLingo 想做的是：**繼續玩你喜歡的老遊戲，順便把英文學起來。**翻譯就顯示在遊戲旁邊，好奇的字點一下就能查，收藏的字會變成單字卡，用你當初在遊戲裡看到的那一句來複習。從自己在乎的故事裡學到的字，比背單字表記得牢多了。
 
 ### 系統需求
 
@@ -114,8 +129,8 @@ App 用你的開發者憑證簽章，所以之後重新編譯也不用再授權�
 **手動翻譯**：如果自動翻譯關掉了，或某句沒有自動翻到，就按 **⌃⌥T**。約 1 秒後，翻譯視窗會顯示英文原文（小字）和中文翻譯（大字）。
 
 翻譯視窗的操作：
-- **累積清單**：每句一個色塊（上方深色帶是英文、下方是中文），新的一句接在最下面並用藍框標示。舊的會保留（最多 100 句），重開 App 也會帶回最近 30 句。
-- **查單字**：直接點英文句子裡的任何單字，視窗下方會出現橘色字卡，有音標、中文釋義，變化形還會附上原形（例如 disappearing → disappear）。按喇叭可以聽發音，按 ⓧ 關閉字卡。
+- **累積清單**：每句一張半透明卡片（上方英文、下方中文），新的一句接在最下面，並用粉紫色發光外框標示。舊的會保留（最多 100 句），重開 App 也會帶回最近 30 句。
+- **查單字**：直接點英文句子裡的任何單字，視窗下方會出現青藍色字卡，有音標、中文釋義，變化形還會附上原形（例如 disappearing → disappear）。按喇叭可以聽發音，按 ⓧ 關閉字卡。
 - **收藏**：字卡右上角的「☆ 收藏」會把單字（原形）連同遊戲原句和翻譯存進單字本；收藏過的字在句子裡會有黃色底色。再按一次「★ 已收藏」可以取消。
 - **整句發音**：每句英文旁邊的小喇叭。
 - **💡 語境解說**：每句英文旁邊的燈泡。點了會請翻譯模型詳細解說這句的方言、文法和用字（例如 cannae＝can't、yon＝that），約 10～20 秒，結果顯示在該句下方的黃色區塊，按 ︿ 收起。同一句再點會直接顯示，不用重新產生。
@@ -133,23 +148,26 @@ App 用你的開發者憑證簽章，所以之後重新編譯也不用再授權�
 點選單列圖示，有兩個選項：
 
 - **我的單字本（N 個）…**：列出所有收藏的單字、釋義和遊戲原句，可以搜尋、發音、刪除。
-- **單字卡複習（今天 N 張）…**：複習今天到期的單字卡（翻譯視窗上方的橘色「複習 N」也能直接點）。
+- **單字卡複習（今天 N 張）…**：複習今天到期的單字卡（翻譯視窗上方的粉紫色「複習 N」也能直接點）。
 
 每個收藏的字有**兩種卡**，各自排程、交替出現（上方標籤會寫「意思」或「克漏字」）：
 
 | 卡片 | 正面 | 要想的 |
 | --- | --- | --- |
-| 意思卡 | 單字、音標、遊戲原句（該字以橘色底線標出） | 中文意思 |
+| 意思卡 | 單字、音標、遊戲原句（該字以金色底線標出） | 中文意思 |
 | 克漏字卡 | 遊戲原句挖空（只露第一個字母，如 r＿＿＿＿＿＿）＋中文翻譯 | 空格裡的英文字 |
 
 1. 看正面回想，按**空白鍵**翻面。
 2. 背面有中文釋義、**字根拆解**（藍＝字首、橘＝字根、綠＝字尾，例如 rest ＋ -ful 充滿…的）和**同字根家族**（★ 黃色是你單字本裡已收藏的字，灰色是字典裡同家族的字）。
 3. 依照記得的程度按 **1 忘記／2 困難／3 普通／4 簡單**，按鈕下方會顯示下次多久後再複習。
-4. 按「忘記」的卡會在這一輪最後再考一次。
+4. 按「忘記」的卡會在這一輪最後再考一次，並要你在輸入框把這個字**打對 2 次**才換下一張（可按「略過」；設定裡可關閉或改次數）。
+5. **克漏字卡可以直接打答案**：游標會自動在輸入框裡，打完按 Return 會翻面並顯示答對或你打了什麼；想不起來就直接按 Return。
+6. 不想再複習的字，按右上角的**垃圾桶**刪除（意思卡和克漏字卡一起刪）。
+7. 今天的卡複習完，可以按「**只練忘記過的**」或「**全部再練一輪**」多練幾次。練習**不會改變**下次複習的日期。
 
-點遊戲裡的英文單字時，橘色字卡上也會顯示字根拆解。
+點遊戲裡的英文單字時，字卡上也會顯示字根拆解。
 
-排程用的是 SM-2：答對時間隔會越拉越長（1 天 → 6 天 → 約 15 天…），忘記就從頭開始。選單列圖示旁的數字是今天待複習的張數，翻譯視窗上方的橘色標籤也會顯示。遊玩時不會跳出提醒。
+排程用的是 SM-2：答對時間隔會越拉越長（1 天 → 6 天 → 約 15 天…），忘記就從頭開始。選單列圖示旁的數字是今天待複習的張數，翻譯視窗上方的粉紫色標籤也會顯示。遊玩時不會跳出提醒。
 
 ## 設定
 

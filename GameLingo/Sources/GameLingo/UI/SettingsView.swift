@@ -11,6 +11,8 @@ struct SettingsView: View {
     @AppStorage(AppSettings.Key.panelOpacity) private var opacity = 1.0
     @AppStorage(AppSettings.Key.releaseMemory) private var releaseMemory = true
     @AppStorage(AppSettings.Key.releaseDelayMinutes) private var releaseDelay = 1.0
+    @AppStorage(AppSettings.Key.spellingPractice) private var spellingPractice = true
+    @AppStorage(AppSettings.Key.spellingRepeats) private var spellingRepeats = 2
     @State private var launchAtLogin = AppSettings.launchAtLogin
     @State private var names = ""
     @State private var namesSaved = false
@@ -62,6 +64,12 @@ struct SettingsView: View {
                 .disabled(!releaseMemory)
                 Text("釋放後查字典、複習單字卡照常可用；開 OpenEmu 或按翻譯時會自動重新載入（約幾秒）。")
                     .font(.caption).foregroundStyle(.secondary)
+            }
+
+            Section("單字卡複習") {
+                Toggle("按「忘記」後打字練習這個字", isOn: $spellingPractice)
+                Stepper("要打對 \(spellingRepeats) 次", value: $spellingRepeats, in: 1...5)
+                    .disabled(!spellingPractice)
             }
 
             Section("啟動") {

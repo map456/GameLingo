@@ -11,6 +11,8 @@ enum AppSettings {
         static let panelOpacity = "panelOpacity"
         static let releaseMemory = "releaseMemory"
         static let releaseDelayMinutes = "releaseDelayMinutes"
+        static let spellingPractice = "spellingPractice"
+        static let spellingRepeats = "spellingRepeats"
     }
 
     static let defaults: [String: Any] = [
@@ -21,6 +23,8 @@ enum AppSettings {
         Key.panelOpacity: 1.0,
         Key.releaseMemory: true,        // OpenEmu 關掉後卸載翻譯模型
         Key.releaseDelayMinutes: 1.0,
+        Key.spellingPractice: true,     // 複習時按「忘記」要打幾次這個字
+        Key.spellingRepeats: 2,
     ]
 
     static func register() { UserDefaults.standard.register(defaults: defaults) }
@@ -28,6 +32,8 @@ enum AppSettings {
     static var autoInterval: Double { max(0.5, UserDefaults.standard.double(forKey: Key.autoInterval)) }
     static var panelOpacity: Double { min(1, max(0.4, UserDefaults.standard.double(forKey: Key.panelOpacity))) }
     static var releaseMemory: Bool { UserDefaults.standard.bool(forKey: Key.releaseMemory) }
+    static var spellingPractice: Bool { UserDefaults.standard.bool(forKey: Key.spellingPractice) }
+    static var spellingRepeats: Int { min(5, max(1, UserDefaults.standard.integer(forKey: Key.spellingRepeats))) }
     static var releaseDelay: Double { UserDefaults.standard.double(forKey: Key.releaseDelayMinutes) * 60 }
 
     /// 開機自動啟動（登入項目）

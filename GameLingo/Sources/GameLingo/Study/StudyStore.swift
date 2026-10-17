@@ -234,6 +234,27 @@ final class StudyStore: ObservableObject {
         return cards
     }
 
+    /// 額外練習用：全部卡片（或只要忘記過的）隨機排，同一字的兩張卡不連續。不影響排程。
+    func practiceCards(onlyLapsed: Bool) -> [ReviewCard] {
+        var cards = words.flatMap { w in
+            w.cards.compactMap { kind, state in
+                !onlyLapsed || state.lapses > 0 ? ReviewCard(word: w, kind: kind, state: state) : nil
+            }
+        }.shuffled()
+        var i = 1
+        while i < cards.count {
+            if cards[i].word.id == cards[i - 1].word.id,
+               let j = cards[(i + 1)...].firstIndex(where: { $0.word.id != cards[i].word.id }) {
+                cards.swapAt(i, j)
+            }
+            i += 1
+        }
+        return cards
+    }
+
+    /// 忘記過的卡片張數（「只練常忘記的」用）
+    var lapsedCardCount: Int { words.reduce(0) { $0 + $1.cards.values.filter { $0.lapses > 0 }.count } }
+
     func answer(_ card: ReviewCard, _ answer: CardScheduler.Answer) {
         guard let db else { return }
         let n = CardScheduler.next(card.state, answer: answer)

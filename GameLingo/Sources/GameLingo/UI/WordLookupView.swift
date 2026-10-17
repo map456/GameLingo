@@ -79,19 +79,23 @@ struct WordLookupCard: View {
                     if info.found {
                         let saved = store.isSaved(lookup.headword)
                         HStack(alignment: .firstTextBaseline, spacing: 8) {
-                            Text(info.word ?? info.query ?? "").font(.system(size: 18, weight: .semibold))
+                            Text(info.word ?? info.query ?? "").font(Theme.rounded(20, .bold))
                             if let p = info.phonetic, !p.isEmpty {
                                 Text("/\(p)/").font(.system(size: 13)).foregroundStyle(.secondary)
                             }
                             Button { SpeechService.shared.speak(info.word ?? info.query ?? "") } label: {
                                 Image(systemName: "speaker.wave.2.fill")
                             }
-                            .buttonStyle(.borderless)
+                            .buttonStyle(CircleIconButtonStyle(size: 24))
                             Spacer()
                             Button { lookup.toggleSave(in: store) } label: {
                                 Label(saved ? "已收藏" : "收藏", systemImage: saved ? "star.fill" : "star")
-                                    .foregroundStyle(saved ? Color.yellow : Color.primary)
+                                    .font(Theme.rounded(12, .bold))
+                                    .foregroundStyle(saved ? Theme.amber : .white)
+                                    .padding(.horizontal, 10).padding(.vertical, 4)
+                                    .background(saved ? AnyShapeStyle(Color.white.opacity(0.10)) : AnyShapeStyle(Theme.accent), in: Capsule())
                             }
+                            .buttonStyle(.plain)
                             .help(saved ? "從單字本移除" : (lookup.sentence.isEmpty
                                 ? "收藏到單字本（沒有遊戲原句，只會有意思卡）"
                                 : "收藏到單字本（連同這句原句，會有意思卡和克漏字卡）"))
@@ -118,10 +122,9 @@ struct WordLookupCard: View {
                 }
             }
             .font(.system(size: 13))
-            .padding(12)
+            .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.teal.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
-            .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color.teal.opacity(0.45), lineWidth: 1))
+            .glowCard(cornerRadius: 16, gradient: Theme.accentCool, glow: Theme.teal)
         }
     }
 

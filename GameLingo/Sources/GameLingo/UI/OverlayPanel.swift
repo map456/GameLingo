@@ -77,7 +77,7 @@ final class OverlayPanel: NSPanel {
         effect.blendingMode = .behindWindow
         effect.state = .active
         effect.wantsLayer = true
-        effect.layer?.cornerRadius = 12
+        effect.layer?.cornerRadius = 16
         effect.layer?.masksToBounds = true
 
         let hosting = NSHostingView(rootView: TranslationView(model: model, store: store, actions: actions))

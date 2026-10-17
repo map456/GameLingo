@@ -1,0 +1,20 @@
+# 大檔案與可重建的資料（build.sh 會自動下載／建立）
+models/
+data/
+build/
+.build/
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+
+# 遊戲截圖（遊戲畫面版權屬於原廠，不放進 repo）
+CleanShot*.png
+stage0/samples/*.png
+stage0/out/
+stage0/*.log
+
+# 編輯器
+.vscode/
+.idea/
+*.swp

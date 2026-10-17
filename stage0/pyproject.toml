@@ -1,0 +1,13 @@
+[project]
+name = "stage0"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "huggingface-hub>=2.2.0",
+    "mlx-lm>=0.32.2",
+    "numpy>=2.5.4",
+    "ocrmac>=1.0.1",
+    "opencc-python-reimplemented>=0.1.7",
+    "pillow>=12.3.0",
+    "requests>=2.34.2",
+]

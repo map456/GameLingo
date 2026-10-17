@@ -1,0 +1,15 @@
+[
+  {"id": "real-01", "source": "截圖實際台詞", "text": "You don't have any fellow party members to talk to at the moment."},
+  {"id": "seedx-ex", "source": "CLAUDE.md 範例句", "text": "But dusk draws inexorably closer. We will commence the lesson tomorrow."},
+  {"id": "mock-inn", "source": "自編（一般對話）", "text": "Welcome to the inn! It'll be 6 gold coins for the night. Would you like to stay?"},
+  {"id": "mock-shop", "source": "自編（一般對話）", "text": "You can't carry any more items. Would you like to put something in the bag?"},
+  {"id": "mock-archaic-1", "source": "自編（古英文）", "text": "Thou art the one of whom the prophecy speaks. Go forth, and may the Goddess watch over thee."},
+  {"id": "mock-archaic-2", "source": "自編（古英文）", "text": "Thy wounds hath been healed. Wouldst thou save thy progress?"},
+  {"id": "mock-accent-1", "source": "自編（口音拼寫）", "text": "Oi! Wot're ye doin' 'ere? This ain't no place fer the likes o' you!"},
+  {"id": "mock-accent-2", "source": "自編（口音拼寫）", "text": "Och, ye cannae go through yon cave wi'oot a torch, laddie."},
+  {"id": "mock-accent-3", "source": "自編（口音拼寫）", "text": "Bah! Them rotten slimes keep eatin' me cabbages, they do!"},
+  {"id": "mock-noun-1", "source": "自編（專有名詞）", "text": "Princess Alena has slipped out of Zamoksva Castle again!"},
+  {"id": "mock-noun-2", "source": "自編（專有名詞）", "text": "The children of Burland have gone missing. Ragnar, you must find them."},
+  {"id": "mock-noun-3", "source": "自編（專有名詞）", "text": "Torneko dreams of owning the finest shop in all of Endor."},
+  {"id": "mock-pun", "source": "自編（雙關）", "text": "I'm a slime, but don't take it personally. I'm just going through a sticky situation."}
+]

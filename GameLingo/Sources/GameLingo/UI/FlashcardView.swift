@@ -63,6 +63,10 @@ struct FlashcardView: View {
             if ProcessInfo.processInfo.environment["GAMELINGO_DEBUG_REVIEW"] == "1" {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2) { showAnswer = true }
             }
+            // 測試用：GAMELINGO_DEBUG_LOOKUP=字 時 3 秒後自動查這個字
+            if let w = ProcessInfo.processInfo.environment["GAMELINGO_DEBUG_LOOKUP"] {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3) { lookup.lookup(w) }
+            }
         }
         .onChange(of: queue.first?.id) { _, _ in
             lookup.close()
@@ -105,7 +109,7 @@ struct FlashcardView: View {
             }
         }
         .padding(.horizontal, 28)
-        .padding(.top, 34)      // 讓出視窗左上角的紅黃綠按鈕
+        .padding(.top, 8)
         .padding(.bottom, 14)
     }
 

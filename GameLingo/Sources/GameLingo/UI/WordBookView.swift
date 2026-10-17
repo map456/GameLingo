@@ -133,9 +133,10 @@ final class StudyWindows {
         // SwiftUI 算出內容需要多高（翻面、查字時會變），視窗就跟著改高度，不用自己捲動
         host.sizingOptions = [.preferredContentSize]
         w.contentViewController = host
-        // 深色漸層外觀：標題列透明，內容延伸到最上方（紅黃綠按鈕浮在漸層上）
-        w.styleMask.insert(.fullSizeContentView)
+        // 深色漸層外觀：標題列透明、底色和漸層頂端同色，看起來連成一片。
+        // 不能用 .fullSizeContentView：視窗跟著內容改高度時，安全區域會一直變動，AppKit 無限重排而當掉。
         w.titlebarAppearsTransparent = true
+        w.backgroundColor = NSColor(Theme.bgTop)
         w.titleVisibility = .hidden
         w.isMovableByWindowBackground = true
         w.appearance = NSAppearance(named: .darkAqua)

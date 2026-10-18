@@ -15,7 +15,9 @@ struct SeedXClient {
     }
 
     /// 邊翻邊回傳「目前為止的整段譯文」。Task 被取消時連線會斷開，伺服器也會停止生成。
-    func translate(_ text: String, names: [String], mode: String = "translate") -> AsyncThrowingStream<Update, Error> {
+    /// context：解說用的語境（"zh" 目前譯文、"prev" 前一句），一般翻譯不用傳
+    func translate(_ text: String, names: [String], mode: String = "translate",
+                   context: [String: String] = [:]) -> AsyncThrowingStream<Update, Error> {
         AsyncThrowingStream { continuation in
             let task = Task {
                 do {
@@ -23,7 +25,9 @@ struct SeedXClient {
                     req.httpMethod = "POST"
                     req.timeoutInterval = 120
                     req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-                    req.httpBody = try JSONSerialization.data(withJSONObject: ["text": text, "names": names, "mode": mode])
+                    var body: [String: Any] = ["text": text, "names": names, "mode": mode]
+                    for (k, v) in context { body[k] = v }
+                    req.httpBody = try JSONSerialization.data(withJSONObject: body)
 
                     let (bytes, response) = try await URLSession.shared.bytes(for: req)
                     if let http = response as? HTTPURLResponse, http.statusCode != 200 {

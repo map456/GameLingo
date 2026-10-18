@@ -25,15 +25,15 @@ you saw them in. Learning from a story you care about sticks far better than mem
 - **Floating window** that never steals keyboard focus from the game. Lines stack up as color blocks.
 - **Proper nouns stay in English** (placeholder protection plus your own name list).
 - **Click-to-define**: ECDICT definitions converted to Taiwan Traditional Chinese, pronunciation, and word-root breakdown (MorphoLex), e.g. `dis- + appear + -ance`.
-- **💡 Context explanation**: asks the model to explain the dialect, grammar and word choice of a line (about 15 s).
+- **💡 Context explanation**: a second local model (Qwen3-8B, 4-bit) explains the meaning, key words, dialect and grammar of a line, using the previous line as context (about 2 s; loaded only when you use it).
 - **Word book and flashcards**: meaning cards and cloze cards built from the game sentence, scheduled with SM-2, plus same-root word families. Reviews follow a gentle retrieval-practice design: a three-level ladder per word (pick the meaning → pick the word for a cloze → type it with first-letter and length hints), automatic grading with a one-typo tolerance, missed words retried a few cards later in an easier form, a daily new-word cap, accuracy and streak stats, and extra practice rounds that never touch the schedule.
 - **Frees about 8 GB of memory** when OpenEmu is closed; settings window; launch at login.
 
 ### Requirements
 
-- Apple Silicon Mac, **macOS 14+**, 16 GB RAM or more recommended (the 8-bit model uses about 8 GB)
+- Apple Silicon Mac, **macOS 14+**, 16 GB RAM or more recommended (the translation model uses about 8 GB; the explanation model about 5 GB more while in use)
 - **Xcode** (for the Swift compiler) and [**uv**](https://github.com/astral-sh/uv) (`brew install uv`)
-- About 25 GB of free disk space for the first build (model download and conversion)
+- About 30 GB of free disk space for the first build (model downloads and conversion)
 - [OpenEmu](https://openemu.org/) in **windowed** mode
 
 ### Quick start
@@ -74,9 +74,9 @@ GameLingo 想做的是：**繼續玩你喜歡的老遊戲，順便把英文學�
 
 ### 系統需求
 
-- Apple Silicon 的 Mac、**macOS 14 以上**，建議記憶體 16 GB 以上（模型約佔 8 GB）
+- Apple Silicon 的 Mac、**macOS 14 以上**，建議記憶體 16 GB 以上（翻譯模型約佔 8 GB；用語境解說時再多約 5 GB）
 - 已安裝 **Xcode**（只需要它的編譯器，不用打開）和 **uv**（`brew install uv`）
-- 第一次編譯需要約 25 GB 硬碟空間（下載並轉換模型）
+- 第一次編譯需要約 30 GB 硬碟空間（下載並轉換模型）
 - OpenEmu 用**視窗模式**（不要全螢幕）
 
 ### 限制
@@ -133,7 +133,7 @@ App 用你的開發者憑證簽章，所以之後重新編譯也不用再授權�
 - **查單字**：直接點英文句子裡的任何單字，視窗下方會出現青藍色字卡，有音標、中文釋義，變化形還會附上原形（例如 disappearing → disappear）。按喇叭可以聽發音，按 ⓧ 關閉字卡。
 - **收藏**：字卡右上角的「☆ 收藏」會把單字（原形）連同遊戲原句和翻譯存進單字本；收藏過的字在句子裡會有黃色底色。再按一次「★ 已收藏」可以取消。
 - **整句發音**：每句英文旁邊的小喇叭。
-- **💡 語境解說**：每句英文旁邊的燈泡。點了會請翻譯模型詳細解說這句的方言、文法和用字（例如 cannae＝can't、yon＝that），約 10～20 秒，結果顯示在該句下方的黃色區塊，按 ︿ 收起。同一句再點會直接顯示，不用重新產生。
+- **💡 語境解說**：每句英文旁邊的燈泡。點了會請另一個本機模型（Qwen3-8B）參考前一句，解說這句的【意思】【單字片語】【用法】，方言或古語會寫出標準英文（例如 aboot＝about、thou＝you），也會指正不自然的翻譯。約 2 秒（第一次要多等約 2 秒載入），結果顯示在該句下方的黃色區塊，按 ︿ 收起。同一句再點會直接顯示，不用重新產生。
 - **移動**：拖曳視窗上方空白處，位置會自動記住。
 - **調整大小**：拖曳視窗邊緣。
 - **✏️ 鉛筆**：OCR 讀錯字時，可以修正最後一句的原文，按 ⌘↩ 重新翻譯。翻完後鍵盤會自動還給遊戲。

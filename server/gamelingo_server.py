@@ -6,7 +6,8 @@ GameLingo App 會自動啟動它；也可以手動跑來測試：
 
 API：
     GET  /health      → {"ready": true/false, "error": ...}
-    POST /translate   body {"text": "...", "names": ["Xi"], "mode": "translate" | "explain"}
+    POST /translate   body {"text": "...", "names": ["Xi"], "mode": "translate" | "explain",
+                            "zh": "目前的譯文（解說用，可省略）", "prev": "前一句（解說用，可省略）"}
                       回應是一行一個 JSON（NDJSON），邊產生邊送：
                         {"zh": "目前為止的整段譯文"}
                         ...
@@ -18,6 +19,10 @@ Seed-X 串接要點（實測結果見 CLAUDE.md）：
 - 模型輸出開頭會有 <s>，要濾掉
 - 輸出不分繁簡 → 每次更新都對「整段」重跑 OpenCC s2twp（避免詞被切斷轉錯）
 - 專名佔位符用 X1、X2（⟦1⟧、NAME1 等寫法實測會被模型改掉）
+
+語境解說（mode = explain）用另一個指令模型 Qwen3-8B（MLX 4-bit，models/qwen3-8b-4bit）：
+Seed-X 是翻譯專用模型，「翻譯並詳細解說」只有方言、古語句子偶爾才有解說。Qwen3 只在按 💡 時才載入，
+卸載時和 Seed-X 一起釋放。找不到 Qwen3 模型時退回 Seed-X 的舊做法。
 """
 
 import argparse
@@ -38,6 +43,17 @@ PROMPT = "Translate the following English sentence into Chinese:\n{text} <zh>"
 PROMPT_EXPLAIN = "Translate the following English sentence into Chinese and explain it in detail:\n{text} <zh>"
 
 s2twp = OpenCC("s2twp")
+# 解說不用 s2twp：它的詞彙轉換會把「類型」改成「型別」這類電腦用語，放在一般解說裡很怪
+s2tw = OpenCC("s2tw")
+
+EXPLAIN_SYSTEM = ("你是耐心的英文老師，學生是台灣人，正在玩英文版的經典 RPG 遊戲（例如《勇者鬥惡龍 IV》）學英文。"
+                  "請一律用繁體中文（台灣用語）回答。遊戲裡的人名、地名保留英文。")
+EXPLAIN_USER = ("{prev}這一句：{text}\n{zh}{names}\n"
+                "請解說這一句，格式如下，總共不超過 250 字：\n"
+                "【意思】用自然的中文說明這句話在遊戲裡想表達什麼{check}。\n"
+                "【單字片語】挑 2～4 個值得學的字或片語，每個一行：英文 — 在這裡的意思。"
+                "方言或古語拼法要寫出標準英文（例如 aboot = about、thee = you）。\n"
+                "【用法】文法、口語、方言或古語的重點（沒有特別的就寫一句即可）。")
 
 
 # ---------- 專名保護（ProperNounGuard） ----------
@@ -312,11 +328,13 @@ def morph(raw):
 # MLX 的運算要在同一個執行緒做，所以所有生成都交給這一條執行緒，HTTP 只負責排隊與回傳。
 
 class Job:
-    def __init__(self, job_id, text, names, mode):
+    def __init__(self, job_id, text, names, mode, zh="", prev=""):
         self.id = job_id
         self.text = text
         self.names = names
         self.mode = mode
+        self.zh = zh        # 解說用：App 已經有的譯文
+        self.prev = prev    # 解說用：前一句
         self.out = queue.Queue()
         self.cancelled = False
 
@@ -325,8 +343,10 @@ class Engine:
     """模型工作執行緒。可以卸載模型（OpenEmu 關掉時釋放約 8 GB 記憶體），需要時再載入。
     字典／字根查詢不需要模型，卸載後照常可用。"""
 
-    def __init__(self, model_path, preload=True):
+    def __init__(self, model_path, preload=True, explainer_path=None):
         self.model_path = model_path
+        self.explainer_path = explainer_path   # Qwen3-8B（語境解說），用到才載入
+        self.ex_model = self.ex_tok = None
         self.jobs = queue.Queue()
         self.ready = False      # 模型已載入
         self.loading = False
@@ -347,12 +367,17 @@ class Engine:
     def request_unload(self):
         self.jobs.put("unload")
 
-    def submit(self, text, names, mode):
+    @property
+    def has_explainer(self):
+        return bool(self.explainer_path) and (Path(self.explainer_path) / "config.json").exists()
+
+    def submit(self, text, names, mode, zh="", prev=""):
         with self.lock:
             self.next_id += 1
-            job = Job(self.next_id, text, names, mode)
+            job = Job(self.next_id, text, names, mode, zh, prev)
             self.latest[mode] = job.id
-        self.request_load()  # 模型被卸載了就先載回來
+        if not (mode == "explain" and self.has_explainer):
+            self.request_load()  # 模型被卸載了就先載回來（用 Qwen3 解說時不需要 Seed-X）
         self.jobs.put(job)
         return job
 
@@ -382,7 +407,7 @@ class Engine:
             self.loading = False
 
     def _unload(self):
-        if not self.ready:
+        if not self.ready and self.ex_model is None:
             return
         import gc
 
@@ -390,6 +415,7 @@ class Engine:
 
         self.ready = False
         self.model = self.tok = None
+        self.ex_model = self.ex_tok = None
         gc.collect()
         try:
             mx.clear_cache()
@@ -410,7 +436,7 @@ class Engine:
             if self._stale(job):
                 job.out.put(None)
                 continue
-            if not self.ready:
+            if not self.ready and not (job.mode == "explain" and self.has_explainer):
                 job.out.put({"done": True, "error": self.error or "模型沒有載入"})
                 job.out.put(None)
                 continue
@@ -420,9 +446,10 @@ class Engine:
                 job.out.put({"done": True, "error": f"{type(e).__name__}: {e}"})
             job.out.put(None)
 
-    def _generate(self, prompt, job, temp, max_tokens, on_text=None, stop_ramble=False):
+    def _generate(self, prompt, job, temp, max_tokens, on_text=None, stop_ramble=False, explainer=False):
         raw = ""
-        for r in self.stream_generate(self.model, self.tok, prompt, max_tokens=max_tokens,
+        model, tok = (self.ex_model, self.ex_tok) if explainer else (self.model, self.tok)
+        for r in self.stream_generate(model, tok, prompt, max_tokens=max_tokens,
                                       sampler=self.make_sampler(temp=temp)):
             raw += r.text
             if job is not None and self._stale(job):
@@ -459,8 +486,59 @@ class Engine:
         job.out.put({"done": True, "zh": zh, "seconds": round(time.perf_counter() - t0, 2),
                      "placeholder_lost": missing, "names": names})
 
+    def _load_explainer(self):
+        if self.ex_model is not None:
+            return True
+        try:
+            from mlx_lm import load, stream_generate
+            from mlx_lm.sample_utils import make_sampler
+
+            t0 = time.perf_counter()
+            self.ex_model, self.ex_tok = load(self.explainer_path)
+            self.stream_generate = stream_generate
+            self.make_sampler = make_sampler
+            log(f"解說模型就緒（{time.perf_counter() - t0:.1f} 秒）：{self.explainer_path}")
+            return True
+        except Exception as e:  # noqa: BLE001
+            log(f"解說模型載入失敗：{type(e).__name__}: {e}")
+            self.ex_model = self.ex_tok = None
+            return False
+
     def _explain(self, job):
-        """語境解說：Seed-X 官方「翻譯並詳細解說」寫法。
+        """語境解說：有 Qwen3 就用 Qwen3（照格式解說，約 2～4 秒），否則退回 Seed-X。"""
+        if self.has_explainer and self._load_explainer():
+            self._explain_qwen(job)
+        elif self.ready:
+            self._explain_seedx(job)
+        else:
+            job.out.put({"done": True, "error": "解說模型沒有載入"})
+
+    def _explain_qwen(self, job):
+        t0 = time.perf_counter()
+        # 只提句子裡真的出現的名字（全部列出來，模型會以為句子在講那個人）
+        names = [n for n in job.names if n and re.search(rf"\b{re.escape(n)}\b", job.text)]
+        user = EXPLAIN_USER.format(
+            text=job.text,
+            prev=f"前一句：{job.prev}\n" if job.prev else "",
+            zh=f"目前的中文翻譯：{job.zh}\n" if job.zh else "",
+            names=f"{'、'.join(names)} 是遊戲裡的人名，保留英文。\n" if names else "",
+            check="；如果上面的中文翻譯有錯或不自然，順便指正" if job.zh else "")
+        prompt = self.ex_tok.apply_chat_template(
+            [{"role": "system", "content": EXPLAIN_SYSTEM}, {"role": "user", "content": user}],
+            add_generation_prompt=True, tokenize=False, enable_thinking=False)
+
+        def emit(raw):
+            job.out.put({"zh": job.zh, "explanation": s2tw.convert(raw).strip()})
+
+        raw = self._generate(prompt, job, 0.3, 600, emit, explainer=True)
+        if raw is None:
+            job.out.put({"done": True, "cancelled": True})
+            return
+        job.out.put({"done": True, "zh": job.zh, "explanation": s2tw.convert(raw).strip(),
+                     "seconds": round(time.perf_counter() - t0, 1)})
+
+    def _explain_seedx(self, job):
+        """語境解說（舊做法）：Seed-X 官方「翻譯並詳細解說」寫法。
         實測 greedy 只會翻譯不解說，要用取樣（溫度 0.7）才會在譯文後面接「[COT] …」解說，
         而且不一定每次都有 → 沒有解說就重試，最多 3 次。"""
         t0 = time.perf_counter()
@@ -559,7 +637,8 @@ class Handler(BaseHTTPRequestHandler):
             self._json(503, {"error": ENGINE.error})
             return
 
-        job = ENGINE.submit(text, [str(x) for x in req.get("names", [])], req.get("mode", "translate"))
+        job = ENGINE.submit(text, [str(x) for x in req.get("names", [])], req.get("mode", "translate"),
+                            str(req.get("zh", "")), str(req.get("prev", "")))
         self.send_response(200)
         self.send_header("Content-Type", "application/x-ndjson; charset=utf-8")
         self.send_header("Transfer-Encoding", "chunked")
@@ -587,9 +666,11 @@ def main():
     ap.add_argument("--port", type=int, default=8765)
     ap.add_argument("--model", default=str(default_model))
     ap.add_argument("--lazy", action="store_true", help="啟動時不載入模型（等 /load 或第一次翻譯）")
+    ap.add_argument("--explainer", default=str(Path(__file__).resolve().parent.parent / "models" / "qwen3-8b-4bit"),
+                    help="語境解說用的模型資料夾（Qwen3-8B MLX 4-bit）")
     args = ap.parse_args()
 
-    ENGINE = Engine(args.model, preload=not args.lazy)
+    ENGINE = Engine(args.model, preload=not args.lazy, explainer_path=args.explainer)
     srv = ThreadingHTTPServer(("127.0.0.1", args.port), Handler)
     log(f"GameLingo 伺服器啟動：http://127.0.0.1:{args.port}（模型載入中…）")
     try:

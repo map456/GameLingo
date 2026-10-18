@@ -10,6 +10,7 @@ from their original sources on your machine, and each one stays under its own li
 | Component 元件 | Used for 用途 | License 授權 | Source 來源 |
 | --- | --- | --- | --- |
 | Seed-X-PPO-7B (ByteDance) | Translation model 翻譯模型 | OpenMDW | https://huggingface.co/ByteDance-Seed/Seed-X-PPO-7B |
+| Qwen3-8B (Alibaba Qwen, MLX 4-bit by mlx-community) | 💡 Context explanation 語境解說 | Apache-2.0 | https://huggingface.co/mlx-community/Qwen3-8B-4bit |
 | ECDICT (`ecdict.csv`, `wordroot.txt`) | English–Chinese dictionary, word roots 英漢字典、字根表 | MIT | https://github.com/skywind3000/ECDICT |
 | MorphoLex-en | Morphological segmentation 字首／字根／字尾拆解 | **CC BY-NC-SA 4.0 (non-commercial only 僅限非商業)** | https://github.com/hugomailhot/MorphoLex-en |
 

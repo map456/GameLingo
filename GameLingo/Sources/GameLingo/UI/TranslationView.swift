@@ -182,7 +182,7 @@ struct TranslationView: View {
                 }
                 .buttonStyle(CircleIconButtonStyle(size: 20))
                 .disabled(entry.explaining || entry.chinese.isEmpty)
-                .help("語境解說：請模型解釋這句的方言、文法、用字（約 10～20 秒）")
+                .help("語境解說：請模型解釋這句的方言、文法、用字（約 2～4 秒）")
             }
 
             Text(entry.chinese.isEmpty ? "…" : entry.chinese)
@@ -216,7 +216,7 @@ struct TranslationView: View {
                 Text("語境解說").font(Theme.rounded(11, .bold)).foregroundStyle(Theme.amber)
                 if entry.explaining {
                     ProgressView().controlSize(.small).scaleEffect(0.6).frame(width: 12, height: 12)
-                    Text("產生中，約 10～20 秒…").font(.system(size: 10)).foregroundStyle(.white.opacity(0.5))
+                    Text("產生中，約 2～4 秒…").font(.system(size: 10)).foregroundStyle(.white.opacity(0.5))
                 }
                 Spacer()
                 Button { actions.closeExplanation(entry.id) } label: {

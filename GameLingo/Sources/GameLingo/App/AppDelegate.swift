@@ -412,6 +412,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func explain(entryID: UUID) {
         guard let i = model.entries.firstIndex(where: { $0.id == entryID }) else { return }
         let english = model.entries[i].english
+        // 語境：目前的譯文和前一句（Qwen3 解說會參考，也會指正不自然的翻譯）
+        let context = ["zh": model.entries[i].chinese, "prev": i > 0 ? model.entries[i - 1].english : ""]
         if let cached = explanationCache[english] {
             model.entries[i].explanation = cached
             return
@@ -430,7 +432,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             self.refreshMenu()
             do {
-                for try await u in client.translate(english, names: KnownNames.load(), mode: "explain") {
+                for try await u in client.translate(english, names: KnownNames.load(), mode: "explain", context: context) {
                     if let e = u.error {
                         update { $0.explaining = false; $0.explanation = "解說失敗：\(e)" }
                         return

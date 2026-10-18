@@ -21,7 +21,7 @@
 | 翻譯模型 | Seed-X-PPO-7B（ByteDance） |
 | 名詞表 | 不建立；專有名詞直接顯示英文原文 |
 | 遊戲用語替換 | 不做（例如不把 party 換成 team 再送模型）；接受「黨內同志」這類語境錯誤（2026-10-16 決定） |
-| 語境解說 | 試 Seed-X 官方「翻譯並詳細解說」寫法，點按時才產生 |
+| 語境解說 | 原本試 Seed-X 官方「翻譯並詳細解說」；2026-10-18 改用 Qwen3-8B 4-bit（使用者選定，與 CourseLingo 相同），點按時才產生 |
 | 複習 | 自己做，只做單字卡（SM-2 排程），不依賴 Anki |
 | 顯示 | 獨立浮動視窗，不搶鍵盤焦點 |
 
@@ -74,6 +74,7 @@ OpenEmu 視窗 ──畫面──▶ 擷取層 ──▶ 辨識層 ──▶ 翻
 - **克漏字卡與字根拆解（2026-10-16，使用者要求）**：`review_cards(saved_word_id, kind)` 取代 v1 的 `cards`（啟動時自動搬移並刪除舊表），kind＝meaning／cloze，各自 SM-2；原句含該字才有克漏字卡（首字母＋底線，附中文翻譯提示）；同一字的兩張卡盡量不連續出。`saved_words.morph` 存拆解 JSON，舊收藏在伺服器就緒後自動補查。拆解來自 `data/morph.db`：MorphoLex-en（6.8 萬字，`<dis<(appear)>ance>` 格式，CC BY-NC-SA 4.0 限非商業）＋ ECDICT wordroot.txt（611 條，key 如「-ance, -ence」「in-1」需展開變體）；188 條字首字尾中文為人工校對（`server/affix_zh.json`），423 條字根用 Seed-X 翻（快取 `data/wordroot_zh.json`）；字根本身是英文字時改用 ECDICT 釋義；同家族例字排除純變化形（segm＝`{(root)}`）。伺服器 `GET /morph?word=`。
 - **不玩時釋放記憶體（2026-10-17）**：伺服器可 `--lazy` 啟動（約 50 MB，只做字典／字根查詢）、`POST /load`、`POST /unload`（卸載後約 150 MB，載回約 1～5 秒），翻譯請求會自動載回。App 端 ModelServer 狀態 starting／unloaded／loading／ready／failed；OpenEmu 啟動就 load，關閉後依設定延遲 unload；按翻譯時 `ensureModel()` 會先等模型載好。
 - **語境解說（2026-10-17，階段 3）**：伺服器 mode=explain 用 Seed-X 官方「翻譯並詳細解說」提示、溫度 0.7，沒產生 [COT] 就重試（最多 3 次），回傳 `zh` 與 `explanation`，並刪掉開頭「好的，我現在需要…使用者…」與結尾「總結一下…」的自言自語段落。約 14 秒。翻譯視窗每句有 💡 按鈕，解說顯示在該句下方黃色區塊，同句有記憶體快取。job 取消改成「同模式」才互相取消（新翻譯不會中斷進行中的解說）。
+- **語境解說改用 Qwen3-8B（2026-10-18，使用者要求）**：Seed-X 的解說只對方言／古語偶爾出現（CourseLingo 實測課程句 12 次 0 次）。伺服器 `--explainer models/qwen3-8b-4bit`（mlx-community/Qwen3-8B-4bit，4.3 GB，build.sh 下載；本機從 CourseLingo 用 `cp -c` 複製）。按 💡 才載入（約 2 秒），`/unload` 時和 Seed-X 一起卸載；同一條 MLX 執行緒。chat template 加 `enable_thinking=False`，溫度 0.3，最多 600 tokens；提示帶前一句與目前譯文（App 傳 `zh`、`prev`），格式【意思】【單字片語】【用法】250 字內，方言要寫出標準英文；名字只傳句子裡出現的（全傳會讓模型以為句子在講主角）；有譯文才請它指正。輸出用 OpenCC s2tw（不用 s2twp）。實測每句約 2 秒。找不到 Qwen3 時退回 Seed-X 舊做法（`_explain_seedx`）。
 - **設定視窗（2026-10-17）**：`AppSettings`（UserDefaults key）＋ `SettingsView`（@AppStorage）：自動翻譯與間隔、中英文字級、不透明度、釋放記憶體與延遲、登入時啟動（SMAppService）、名字清單編輯、快捷鍵一覽。
 - **複習加強（2026-10-17，使用者要求）**：複習視窗右上角垃圾桶可刪除該字（兩種卡一起刪，先確認）；按「忘記」後要在輸入框打對該字（預設 2 次，原形或出現時詞形都算，大小寫不拘）才換下一張，可略過；設定視窗「單字卡複習」可關閉或改次數。複習完的畫面可「只練忘記過的」（lapses>0）或「全部再練一輪」，練習模式只有「再一次／記得了」兩鍵，不寫入 SM-2 排程。克漏字卡正面有輸入框（自動聚焦），Return 翻面並顯示答對／你打的字；該卡不用空白鍵快捷鍵以免吃掉打字。
 - **App 圖示**：使用者提供的圖，去白底、依 Apple 留白比例置中，`GameLingo/Resources/AppIcon.icns`，build.sh 複製到 bundle。

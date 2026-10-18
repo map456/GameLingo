@@ -28,6 +28,15 @@ else
         --mlx-path "$MODEL" -q --q-bits 8)
 fi
 
+step "2a 確認語境解說模型（Qwen3-8B 4-bit）"
+EXPLAINER="$ROOT/models/qwen3-8b-4bit"
+if [ -f "$EXPLAINER/config.json" ]; then
+    echo "已有解說模型：$EXPLAINER"
+else
+    echo "第一次使用：下載 Qwen3-8B（MLX 4-bit，約 4.3 GB），💡 語境解說用…"
+    (cd "$ROOT/server" && uv run python -c "from huggingface_hub import snapshot_download; snapshot_download('mlx-community/Qwen3-8B-4bit', local_dir='$EXPLAINER')")
+fi
+
 step "2b 確認字典（ECDICT）"
 DICT="$ROOT/data/ecdict.db"
 if [ -f "$DICT" ]; then

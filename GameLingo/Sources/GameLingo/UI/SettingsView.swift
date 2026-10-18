@@ -13,6 +13,7 @@ struct SettingsView: View {
     @AppStorage(AppSettings.Key.releaseDelayMinutes) private var releaseDelay = 1.0
     @AppStorage(AppSettings.Key.spellingPractice) private var spellingPractice = false
     @AppStorage(AppSettings.Key.newWordsPerDay) private var newWordsPerDay = 10
+    @AppStorage(AppSettings.Key.translationModel) private var translationModel = TranslationModel.qwen35.rawValue
     @AppStorage(AppSettings.Key.spellingRepeats) private var spellingRepeats = 2
     @State private var launchAtLogin = AppSettings.launchAtLogin
     @State private var names = ""
@@ -20,6 +21,16 @@ struct SettingsView: View {
 
     var body: some View {
         Form {
+            Section("翻譯模型") {
+                Picker("模型", selection: $translationModel) {
+                    ForEach(TranslationModel.allCases, id: \.rawValue) { m in
+                        Text(m.title).tag(m.rawValue)
+                    }
+                }
+                Text("切換後會自動重新啟動翻譯伺服器，第一次載入約 5～10 秒。")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+
             Section("翻譯") {
                 Toggle("自動翻譯（對話停住就翻，⌃⌥A 也能切換）", isOn: $autoTranslate)
                 LabeledContent("偵測間隔") {
@@ -55,7 +66,7 @@ struct SettingsView: View {
             }
 
             Section("記憶體") {
-                Toggle("OpenEmu 關閉後釋放翻譯模型的記憶體（約 8 GB）", isOn: $releaseMemory)
+                Toggle("OpenEmu 關閉後釋放翻譯模型的記憶體（約 10 GB）", isOn: $releaseMemory)
                 Picker("關閉多久後釋放", selection: $releaseDelay) {
                     Text("立刻").tag(0.0)
                     Text("1 分鐘").tag(1.0)

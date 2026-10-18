@@ -18,7 +18,7 @@
 | 硬體 | Apple M5 Max，記憶體 64GB（`sysctl hw.memsize` 實測） |
 | 遊戲 | NDS《Dragon Quest IV: Chapters of the Chosen》英文版 |
 | 模擬器 | OpenEmu，視窗模式（不用全螢幕），NDS 雙螢幕**上下排列** |
-| 翻譯模型 | Seed-X-PPO-7B（ByteDance） |
+| 翻譯模型 | 預設 Qwen3.5-9B（MLX 8-bit，2026-10-18 使用者要求試用並改為預設）；設定可切回 Seed-X-PPO-7B（ByteDance） |
 | 名詞表 | 不建立；專有名詞直接顯示英文原文 |
 | 遊戲用語替換 | 不做（例如不把 party 換成 team 再送模型）；接受「黨內同志」這類語境錯誤（2026-10-16 決定） |
 | 語境解說 | 原本試 Seed-X 官方「翻譯並詳細解說」；2026-10-18 改用 Qwen3-8B 4-bit（使用者選定，與 CourseLingo 相同），點按時才產生 |
@@ -74,6 +74,8 @@ OpenEmu 視窗 ──畫面──▶ 擷取層 ──▶ 辨識層 ──▶ 翻
 - **克漏字卡與字根拆解（2026-10-16，使用者要求）**：`review_cards(saved_word_id, kind)` 取代 v1 的 `cards`（啟動時自動搬移並刪除舊表），kind＝meaning／cloze，各自 SM-2；原句含該字才有克漏字卡（首字母＋底線，附中文翻譯提示）；同一字的兩張卡盡量不連續出。`saved_words.morph` 存拆解 JSON，舊收藏在伺服器就緒後自動補查。拆解來自 `data/morph.db`：MorphoLex-en（6.8 萬字，`<dis<(appear)>ance>` 格式，CC BY-NC-SA 4.0 限非商業）＋ ECDICT wordroot.txt（611 條，key 如「-ance, -ence」「in-1」需展開變體）；188 條字首字尾中文為人工校對（`server/affix_zh.json`），423 條字根用 Seed-X 翻（快取 `data/wordroot_zh.json`）；字根本身是英文字時改用 ECDICT 釋義；同家族例字排除純變化形（segm＝`{(root)}`）。伺服器 `GET /morph?word=`。
 - **不玩時釋放記憶體（2026-10-17）**：伺服器可 `--lazy` 啟動（約 50 MB，只做字典／字根查詢）、`POST /load`、`POST /unload`（卸載後約 150 MB，載回約 1～5 秒），翻譯請求會自動載回。App 端 ModelServer 狀態 starting／unloaded／loading／ready／failed；OpenEmu 啟動就 load，關閉後依設定延遲 unload；按翻譯時 `ensureModel()` 會先等模型載好。
 - **語境解說（2026-10-17，階段 3）**：伺服器 mode=explain 用 Seed-X 官方「翻譯並詳細解說」提示、溫度 0.7，沒產生 [COT] 就重試（最多 3 次），回傳 `zh` 與 `explanation`，並刪掉開頭「好的，我現在需要…使用者…」與結尾「總結一下…」的自言自語段落。約 14 秒。翻譯視窗每句有 💡 按鈕，解說顯示在該句下方黃色區塊，同句有記憶體快取。job 取消改成「同模式」才互相取消（新翻譯不會中斷進行中的解說）。
+- **翻譯視窗被撐高跳出螢幕（2026-10-18 修正）**：NSHostingView 預設會依 SwiftUI 內容的大小調整視窗，點字後多出字卡就把面板撐到 1832 高、跑出螢幕。OverlayPanel 的 hosting 設 `sizingOptions = []`（大小只由使用者拖曳決定），啟動時若視窗比螢幕高或在螢幕外就縮回（最高 600）。測試用 `GAMELINGO_DEBUG_OVERLAY_LOOKUP=字`。
+- **翻譯改用 Qwen3.5-9B（2026-10-18，使用者要求）**：`models/qwen3.5-9b-8bit`（mlx-community/Qwen3.5-9B-MLX-8bit，9.8 GB，Apache-2.0，mlx-lm 0.32 支援 qwen3_5）。伺服器看 config 的 model_type 是 qwen 就用 chat 提示翻譯（`QWEN_TR_SYSTEM`：遊戲台詞→台灣繁中、只輸出譯文、party＝隊伍），greedy，只取第一段，s2twp。**專名仍要用 X1/X2 佔位符**：只在提示裡說保留英文沒用，它會改用官方中文譯名（艾莉娜、拉格納）；用佔位符 8/8 保留。`--explainer` 與 `--model` 同資料夾時共用（只載入一次，約 10 GB，比 Seed-X＋Qwen3 的 8＋4.3 GB 少）。實測對照（stage0 測試句＋實際台詞）：速度與 Seed-X 相同（0.26～0.55 秒）；Qwen3.5 懂遊戲語境（party→隊伍、save thy progress→儲存進度、slime→史萊姆、Aignens 句「至今未歸」正確），Seed-X 這幾句都錯；Qwen3.5 偶爾生硬（「因驚愕而無法移動」）。解說 Qwen3.5 約 3～4 秒（Qwen3-8B 約 2 秒），品質相近、兩者都偶有小錯。App：`AppSettings.translationModel`（qwen35／seedx）→ ModelServer 啟動參數 `--model`、`--explainer`；設定視窗「翻譯模型」切換後 `server.restart()`；選的模型沒下載就退回 Seed-X。
 - **語境解說改用 Qwen3-8B（2026-10-18，使用者要求）**：Seed-X 的解說只對方言／古語偶爾出現（CourseLingo 實測課程句 12 次 0 次）。伺服器 `--explainer models/qwen3-8b-4bit`（mlx-community/Qwen3-8B-4bit，4.3 GB，build.sh 下載；本機從 CourseLingo 用 `cp -c` 複製）。按 💡 才載入（約 2 秒），`/unload` 時和 Seed-X 一起卸載；同一條 MLX 執行緒。chat template 加 `enable_thinking=False`，溫度 0.3，最多 600 tokens；提示帶前一句與目前譯文（App 傳 `zh`、`prev`），格式【意思】【單字片語】【用法】250 字內，方言要寫出標準英文；名字只傳句子裡出現的（全傳會讓模型以為句子在講主角）；有譯文才請它指正。輸出用 OpenCC s2tw（不用 s2twp）。實測每句約 2 秒。找不到 Qwen3 時退回 Seed-X 舊做法（`_explain_seedx`）。
 - **設定視窗（2026-10-17）**：`AppSettings`（UserDefaults key）＋ `SettingsView`（@AppStorage）：自動翻譯與間隔、中英文字級、不透明度、釋放記憶體與延遲、登入時啟動（SMAppService）、名字清單編輯、快捷鍵一覽。
 - **複習加強（2026-10-17，使用者要求）**：複習視窗右上角垃圾桶可刪除該字（兩種卡一起刪，先確認）；按「忘記」後要在輸入框打對該字（預設 2 次，原形或出現時詞形都算，大小寫不拘）才換下一張，可略過；設定視窗「單字卡複習」可關閉或改次數。複習完的畫面可「只練忘記過的」（lapses>0）或「全部再練一輪」，練習模式只有「再一次／記得了」兩鍵，不寫入 SM-2 排程。克漏字卡正面有輸入框（自動聚焦），Return 翻面並顯示答對／你打的字；該卡不用空白鍵快捷鍵以免吃掉打字。

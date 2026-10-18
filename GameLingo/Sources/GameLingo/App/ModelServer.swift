@@ -38,6 +38,8 @@ final class ModelServer {
     func start(loadModel: Bool) {
         Task {
             if let h = await health() {
+                // 沿用已經在跑的伺服器（例如 App 重開）：當作用目前設定的模型
+                if launchedModel == nil { launchedModel = AppSettings.translationModel }
                 apply(h)
                 if loadModel { load() }
                 return
@@ -81,6 +83,24 @@ final class ModelServer {
         pollTask?.cancel()
         process?.terminate()
         process = nil
+    }
+
+    /// 目前伺服器用的模型組合（啟動時決定）
+    private(set) var launchedModel: TranslationModel?
+
+    /// 換模型：關掉伺服器、等它真的停了，再用新設定啟動
+    func restart(loadModel: Bool) {
+        pollTask?.cancel()
+        process?.terminate()
+        process = nil
+        state = .starting
+        Task {
+            for _ in 0..<20 {
+                if await health() == nil { break }
+                try? await Task.sleep(for: .milliseconds(250))
+            }
+            start(loadModel: loadModel)
+        }
     }
 
     // MARK: - 內部
@@ -154,7 +174,17 @@ final class ModelServer {
 
         let p = Process()
         p.executableURL = python
-        p.arguments = [script.path, "--port", String(port)] + (lazy ? ["--lazy"] : [])
+        // 選的模型還沒下載（沒有 config.json）就退回 Seed-X 組合
+        var choice = AppSettings.translationModel
+        if !FileManager.default.fileExists(atPath: root.appendingPathComponent(choice.folders.model + "/config.json").path) {
+            appLog("找不到 \(choice.folders.model)，改用 Seed-X")
+            choice = .seedx
+        }
+        launchedModel = choice
+        p.arguments = [script.path, "--port", String(port),
+                       "--model", root.appendingPathComponent(choice.folders.model).path,
+                       "--explainer", root.appendingPathComponent(choice.folders.explainer).path]
+            + (lazy ? ["--lazy"] : [])
         p.currentDirectoryURL = root.appendingPathComponent("server")
         p.standardOutput = log
         p.standardError = log

@@ -28,7 +28,17 @@ else
         --mlx-path "$MODEL" -q --q-bits 8)
 fi
 
-step "2a 確認語境解說模型（Qwen3-8B 4-bit）"
+step "2a 確認 Qwen3.5-9B（預設的翻譯＋解說模型，MLX 8-bit）"
+QWEN35="$ROOT/models/qwen3.5-9b-8bit"
+if [ -f "$QWEN35/config.json" ]; then
+    echo "已有模型：$QWEN35"
+else
+    echo "第一次使用：下載 Qwen3.5-9B（MLX 8-bit，約 10 GB）…"
+    (cd "$ROOT/server" && uv run python -c "from huggingface_hub import snapshot_download; snapshot_download('mlx-community/Qwen3.5-9B-MLX-8bit', local_dir='$QWEN35')")
+    rm -rf "$QWEN35/.cache"
+fi
+
+step "2a' 確認語境解說模型（Qwen3-8B 4-bit，搭配 Seed-X 時用）"
 EXPLAINER="$ROOT/models/qwen3-8b-4bit"
 if [ -f "$EXPLAINER/config.json" ]; then
     echo "已有解說模型：$EXPLAINER"

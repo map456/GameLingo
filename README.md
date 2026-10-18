@@ -21,19 +21,19 @@ you saw them in. Learning from a story you care about sticks far better than mem
 
 ### Features
 
-- **Auto translation**: detects the dialogue box, waits until the text stops typing, then OCRs it (Apple Vision) and translates it (Seed-X-PPO-7B on MLX, about 0.5 s per line).
+- **Auto translation**: detects the dialogue box, waits until the text stops typing, then OCRs it (Apple Vision) and translates it locally (Qwen3.5-9B on MLX by default, about 0.3–0.5 s per line; Seed-X-PPO-7B can be selected in Settings).
 - **Floating window** that never steals keyboard focus from the game. Lines stack up as color blocks.
 - **Proper nouns stay in English** (placeholder protection plus your own name list).
 - **Click-to-define**: ECDICT definitions converted to Taiwan Traditional Chinese, pronunciation, and word-root breakdown (MorphoLex), e.g. `dis- + appear + -ance`.
-- **💡 Context explanation**: a second local model (Qwen3-8B, 4-bit) explains the meaning, key words, dialect and grammar of a line, using the previous line as context (about 2 s; loaded only when you use it).
+- **💡 Context explanation**: the local model (Qwen3.5-9B, or Qwen3-8B when Seed-X translates) explains the meaning, key words, dialect and grammar of a line, using the previous line as context (about 2–4 s).
 - **Word book and flashcards**: meaning cards and cloze cards built from the game sentence, scheduled with SM-2, plus same-root word families. Reviews follow a gentle retrieval-practice design: a three-level ladder per word (pick the meaning → pick the word for a cloze → type it with first-letter and length hints), automatic grading with a one-typo tolerance, missed words retried a few cards later in an easier form, a daily new-word cap, accuracy and streak stats, and extra practice rounds that never touch the schedule.
-- **Frees about 8 GB of memory** when OpenEmu is closed; settings window; launch at login.
+- **Frees about 10 GB of memory** when OpenEmu is closed; settings window; launch at login.
 
 ### Requirements
 
-- Apple Silicon Mac, **macOS 14+**, 16 GB RAM or more recommended (the translation model uses about 8 GB; the explanation model about 5 GB more while in use)
+- Apple Silicon Mac, **macOS 14+**, 16 GB RAM or more recommended (the default Qwen3.5-9B model uses about 10 GB)
 - **Xcode** (for the Swift compiler) and [**uv**](https://github.com/astral-sh/uv) (`brew install uv`)
-- About 30 GB of free disk space for the first build (model downloads and conversion)
+- About 40 GB of free disk space for the first build (model downloads and conversion)
 - [OpenEmu](https://openemu.org/) in **windowed** mode
 
 ### Quick start
@@ -51,7 +51,7 @@ If you don't have an Apple Development certificate, the app is ad-hoc signed and
 ### Limitations
 
 - Tuned for **Dragon Quest IV (NDS)**: dialogue-box detection looks for DQ4's white frame, and the dialect word list comes from DQ4. Other games may need tweaks.
-- OpenEmu only. The Seed-X model has no game context, so terms like "party" can be mistranslated.
+- OpenEmu only. Machine translation can still miss game context now and then.
 - The UI is in Traditional Chinese.
 
 ### License
@@ -74,9 +74,9 @@ GameLingo 想做的是：**繼續玩你喜歡的老遊戲，順便把英文學�
 
 ### 系統需求
 
-- Apple Silicon 的 Mac、**macOS 14 以上**，建議記憶體 16 GB 以上（翻譯模型約佔 8 GB；用語境解說時再多約 5 GB）
+- Apple Silicon 的 Mac、**macOS 14 以上**，建議記憶體 16 GB 以上（預設的 Qwen3.5-9B 模型約佔 10 GB）
 - 已安裝 **Xcode**（只需要它的編譯器，不用打開）和 **uv**（`brew install uv`）
-- 第一次編譯需要約 30 GB 硬碟空間（下載並轉換模型）
+- 第一次編譯需要約 40 GB 硬碟空間（下載並轉換模型）
 - OpenEmu 用**視窗模式**（不要全螢幕）
 
 ### 限制
@@ -133,7 +133,7 @@ App 用你的開發者憑證簽章，所以之後重新編譯也不用再授權�
 - **查單字**：直接點英文句子裡的任何單字，視窗下方會出現青藍色字卡，有音標、中文釋義，變化形還會附上原形（例如 disappearing → disappear）。按喇叭可以聽發音，按 ⓧ 關閉字卡。
 - **收藏**：字卡右上角的「☆ 收藏」會把單字（原形）連同遊戲原句和翻譯存進單字本；收藏過的字在句子裡會有黃色底色。再按一次「★ 已收藏」可以取消。
 - **整句發音**：每句英文旁邊的小喇叭。
-- **💡 語境解說**：每句英文旁邊的燈泡。點了會請另一個本機模型（Qwen3-8B）參考前一句，解說這句的【意思】【單字片語】【用法】，方言或古語會寫出標準英文（例如 aboot＝about、thou＝you），也會指正不自然的翻譯。約 2 秒（第一次要多等約 2 秒載入），結果顯示在該句下方的黃色區塊，按 ︿ 收起。同一句再點會直接顯示，不用重新產生。
+- **💡 語境解說**：每句英文旁邊的燈泡。點了會請本機模型（預設 Qwen3.5-9B；翻譯選 Seed-X 時用 Qwen3-8B）參考前一句，解說這句的【意思】【單字片語】【用法】，方言或古語會寫出標準英文（例如 aboot＝about、thou＝you），也會指正不自然的翻譯。約 2～4 秒，結果顯示在該句下方的黃色區塊，按 ︿ 收起。同一句再點會直接顯示，不用重新產生。
 - **移動**：拖曳視窗上方空白處，位置會自動記住。
 - **調整大小**：拖曳視窗邊緣。
 - **✏️ 鉛筆**：OCR 讀錯字時，可以修正最後一句的原文，按 ⌘↩ 重新翻譯。翻完後鍵盤會自動還給遊戲。
@@ -191,8 +191,9 @@ App 用你的開發者憑證簽章，所以之後重新編譯也不用再授權�
 | --- | --- |
 | 自動翻譯、偵測間隔 | 0.5～3 秒，預設 1 秒 |
 | 中文字級、英文字級、不透明度 | 翻譯視窗的外觀，改了立刻生效 |
-| 釋放記憶體 | OpenEmu 關閉後（立刻／1／5／15 分鐘）卸載翻譯模型，釋放約 8 GB；查字典、複習單字卡照常可用；開 OpenEmu 或按翻譯時自動載回（約幾秒） |
+| 釋放記憶體 | OpenEmu 關閉後（立刻／1／5／15 分鐘）卸載翻譯模型，釋放約 10 GB；查字典、複習單字卡照常可用；開 OpenEmu 或按翻譯時自動載回（約幾秒） |
 | 登入時自動開啟 | 開機後自動啟動 GameLingo |
+| 翻譯模型 | 預設 Qwen3.5-9B（懂遊戲語境，party 會翻成「隊伍」）；也可以切回 Seed-X 翻譯＋Qwen3-8B 解說。切換後會自動重新啟動翻譯伺服器 |
 | 單字卡複習 | 每天最多學幾個新字（預設 10）；答錯後要不要照著打這個字（預設關閉） |
 | 名字清單 | 直接在設定裡編輯、儲存 |
 
@@ -210,15 +211,15 @@ App 用你的開發者憑證簽章，所以之後重新編譯也不用再授權�
 
 ## 結束
 
-點選單列圖示 →「結束 GameLingo」。背景的翻譯伺服器也會一起關掉，釋放約 8 GB 記憶體。
+點選單列圖示 →「結束 GameLingo」。背景的翻譯伺服器也會一起關掉，釋放約 10 GB 記憶體。
 
 ## 專案結構
 
 | 資料夾 | 內容 |
 | --- | --- |
 | `GameLingo/` | Swift App：選單列、快捷鍵、擷取、OCR、浮動視窗 |
-| `server/` | 本機翻譯伺服器（Python）：Seed-X、專名保護、OpenCC 台灣正體 |
-| `models/` | Seed-X-PPO-7B 的 MLX 8-bit 模型（不進版本控制） |
+| `server/` | 本機翻譯伺服器（Python）：Qwen3.5／Seed-X、專名保護、OpenCC 台灣正體 |
+| `models/` | 本機模型：Qwen3.5-9B、Seed-X-PPO-7B、Qwen3-8B（不進版本控制） |
 | `data/` | ECDICT 英漢字典（`ecdict.db`）與字根資料庫（`morph.db`），不進版本控制 |
 | `stage0/` | 階段 0 驗證腳本與報表 |
 | `build.sh` | 一鍵編譯 |
@@ -227,7 +228,8 @@ App 用你的開發者憑證簽章，所以之後重新編譯也不用再授權�
 
 程式碼採 [MIT 授權](LICENSE)。模型與資料由 build.sh 另外下載，各自依原授權使用，詳見 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 
-- 翻譯模型：Seed-X-PPO-7B（ByteDance，OpenMDW）
+- 翻譯模型：Qwen3.5-9B（Alibaba，Apache-2.0，預設）；Seed-X-PPO-7B（ByteDance，OpenMDW，可切換）
+- 語境解說：Qwen3.5-9B；搭配 Seed-X 時用 Qwen3-8B（Alibaba，Apache-2.0）
 - 英漢字典與字根表：[ECDICT](https://github.com/skywind3000/ECDICT)（MIT）
 - 單字拆解：[MorphoLex-en](https://github.com/hugomailhot/MorphoLex-en)（CC BY-NC-SA 4.0，**僅限非商業使用**）
 - 字首字尾的中文意思：人工整理（`server/affix_zh.json`）；字根意思由 Seed-X 翻譯

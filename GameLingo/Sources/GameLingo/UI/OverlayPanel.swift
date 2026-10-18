@@ -81,6 +81,8 @@ final class OverlayPanel: NSPanel {
         effect.layer?.masksToBounds = true
 
         let hosting = NSHostingView(rootView: TranslationView(model: model, store: store, actions: actions))
+        // 視窗大小只由使用者拖曳決定：不讓 SwiftUI 內容（例如點字後多出的字卡）把視窗撐高、跳出螢幕
+        hosting.sizingOptions = []
         hosting.translatesAutoresizingMaskIntoConstraints = false
         effect.addSubview(hosting)
         NSLayoutConstraint.activate([
@@ -99,6 +101,12 @@ final class OverlayPanel: NSPanel {
         // 舊版存的視窗比較矮；改成累積清單後至少要有 360 高（保持上緣不動）
         if frame.height < 360 {
             setFrame(NSRect(x: frame.minX, y: frame.maxY - 440, width: max(frame.width, 460), height: 440), display: false)
+        }
+        // 之前被內容撐得比螢幕還大、或跑到螢幕外：縮回螢幕裡
+        if let vf = (screen ?? NSScreen.main)?.visibleFrame, frame.height > vf.height || !vf.intersects(frame) {
+            let h = min(frame.height, vf.height, 600)
+            setFrame(NSRect(x: min(max(frame.minX, vf.minX), vf.maxX - frame.width), y: vf.maxY - h - 24,
+                            width: frame.width, height: h), display: false)
         }
     }
 

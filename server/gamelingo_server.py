@@ -20,6 +20,9 @@ Seed-X 串接要點（實測結果見 CLAUDE.md）：
 - 輸出不分繁簡 → 每次更新都對「整段」重跑 OpenCC s2twp（避免詞被切斷轉錯）
 - 專名佔位符用 X1、X2（⟦1⟧、NAME1 等寫法實測會被模型改掉）
 
+翻譯模型也可以是 Qwen 系列指令模型（例如 Qwen3.5-9B，--model 指到它的資料夾）：自動判斷，改用 chat 提示翻譯，
+不用佔位符保護專名（直接在提示裡說名字保留英文）；--explainer 指到同一個資料夾時兩者共用，只載入一次。
+
 語境解說（mode = explain）用另一個指令模型 Qwen3-8B（MLX 4-bit，models/qwen3-8b-4bit）：
 Seed-X 是翻譯專用模型，「翻譯並詳細解說」只有方言、古語句子偶爾才有解說。Qwen3 只在按 💡 時才載入，
 卸載時和 Seed-X 一起釋放。找不到 Qwen3 模型時退回 Seed-X 的舊做法。
@@ -45,6 +48,11 @@ PROMPT_EXPLAIN = "Translate the following English sentence into Chinese and expl
 s2twp = OpenCC("s2twp")
 # 解說不用 s2twp：它的詞彙轉換會把「類型」改成「型別」這類電腦用語，放在一般解說裡很怪
 s2tw = OpenCC("s2tw")
+
+# Qwen 當翻譯模型時的提示（實測見 CLAUDE.md）
+QWEN_TR_SYSTEM = ("你是專業的遊戲翻譯。把使用者給的英文遊戲台詞（經典 RPG，例如《勇者鬥惡龍 IV》）翻成自然的繁體中文（台灣用語）。"
+                  "只輸出譯文，不要解釋、不要加引號。人名、地名保留英文原文。方言或古語照意思翻成通順的中文。"
+                  "party 是「隊伍、同伴」的意思。")
 
 EXPLAIN_SYSTEM = ("你是耐心的英文老師，學生是台灣人，正在玩英文版的經典 RPG 遊戲（例如《勇者鬥惡龍 IV》）學英文。"
                   "請一律用繁體中文（台灣用語）回答。遊戲裡的人名、地名保留英文。")
@@ -339,6 +347,14 @@ class Job:
         self.cancelled = False
 
 
+def _is_chat_model(path):
+    try:
+        cfg = json.loads((Path(path) / "config.json").read_text())
+    except (OSError, ValueError):
+        return False
+    return str(cfg.get("model_type", "")).startswith("qwen")
+
+
 class Engine:
     """模型工作執行緒。可以卸載模型（OpenEmu 關掉時釋放約 8 GB 記憶體），需要時再載入。
     字典／字根查詢不需要模型，卸載後照常可用。"""
@@ -347,6 +363,9 @@ class Engine:
         self.model_path = model_path
         self.explainer_path = explainer_path   # Qwen3-8B（語境解說），用到才載入
         self.ex_model = self.ex_tok = None
+        self.is_chat = _is_chat_model(model_path)   # 翻譯模型是 Qwen 這類指令模型（用 chat 提示）
+        # 解說模型和翻譯模型是同一個資料夾 → 共用，不重複載入
+        self.shared = bool(explainer_path) and Path(explainer_path).resolve() == Path(model_path).resolve()
         self.jobs = queue.Queue()
         self.ready = False      # 模型已載入
         self.loading = False
@@ -376,7 +395,7 @@ class Engine:
             self.next_id += 1
             job = Job(self.next_id, text, names, mode, zh, prev)
             self.latest[mode] = job.id
-        if not (mode == "explain" and self.has_explainer):
+        if not (mode == "explain" and self.has_explainer and not self.shared):
             self.request_load()  # 模型被卸載了就先載回來（用 Qwen3 解說時不需要 Seed-X）
         self.jobs.put(job)
         return job
@@ -397,7 +416,10 @@ class Engine:
             self.stream_generate = stream_generate
             self.make_sampler = make_sampler
             self.ready = True
-            self._generate(PROMPT.format(text="Hello."), None, 0.0, 8)  # 預熱
+            if self.shared:
+                self.ex_model, self.ex_tok = self.model, self.tok
+            self._generate(self._chat(QWEN_TR_SYSTEM, "Hello.") if self.is_chat else PROMPT.format(text="Hello."),
+                           None, 0.0, 8)  # 預熱
             self.error = None
             log(f"模型就緒（{time.perf_counter() - t0:.1f} 秒）：{self.model_path}")
         except Exception as e:  # noqa: BLE001
@@ -436,7 +458,9 @@ class Engine:
             if self._stale(job):
                 job.out.put(None)
                 continue
-            if not self.ready and not (job.mode == "explain" and self.has_explainer):
+            if not self.ready and self.shared:
+                self._load()   # 共用模型：解說也要先載入翻譯模型
+            if not self.ready and not (job.mode == "explain" and self.has_explainer and not self.shared):
                 job.out.put({"done": True, "error": self.error or "模型沒有載入"})
                 job.out.put(None)
                 continue
@@ -460,9 +484,48 @@ class Engine:
                 on_text(raw)
         return cut_ramble(raw) if stop_ramble else raw
 
+    def _chat(self, system, user, explainer=False):
+        tok = self.ex_tok if explainer else self.tok
+        return tok.apply_chat_template([{"role": "system", "content": system}, {"role": "user", "content": user}],
+                                       add_generation_prompt=True, tokenize=False, enable_thinking=False)
+
+    def _translate_chat(self, job):
+        """Qwen 指令模型翻譯：chat 提示、greedy、只取第一段（模型偶爾會補解說）。
+        專名一樣先換成 X1、X2 再翻：直接在提示裡要它保留英文沒用，它會改用遊戲官方中文譯名（艾莉娜、拉格納）。"""
+        t0 = time.perf_counter()
+        guarded, names = protect(job.text, job.names)
+
+        def user(text, guarded_names):
+            return text + ("\n（X1、X2 這類代號是名字，請原樣保留）" if guarded_names else "")
+
+        def tidy(raw):
+            return s2twp.convert(raw.strip().split("\n\n")[0].strip().strip("「」\"“”"))
+
+        def emit(raw):
+            zh, _ = restore(tidy(raw), names)
+            job.out.put({"zh": zh})
+
+        raw = self._generate(self._chat(QWEN_TR_SYSTEM, user(guarded, names)), job, 0.0, 256, emit)
+        if raw is None:
+            job.out.put({"done": True, "cancelled": True})
+            return
+        zh, missing = restore(tidy(raw), names)
+        if missing:
+            # 代號被模型弄丟 → 不保護直接翻
+            raw = self._generate(self._chat(QWEN_TR_SYSTEM, job.text), job, 0.0, 256)
+            if raw is None:
+                job.out.put({"done": True, "cancelled": True})
+                return
+            zh = tidy(raw)
+        job.out.put({"done": True, "zh": zh, "seconds": round(time.perf_counter() - t0, 2),
+                     "placeholder_lost": missing, "names": names})
+
     def _handle(self, job):
         if job.mode == "explain":
             self._explain(job)
+            return
+        if self.is_chat:
+            self._translate_chat(job)
             return
         t0 = time.perf_counter()
         guarded, names = protect(job.text, job.names)
@@ -489,6 +552,8 @@ class Engine:
     def _load_explainer(self):
         if self.ex_model is not None:
             return True
+        if self.shared:
+            return self.ready
         try:
             from mlx_lm import load, stream_generate
             from mlx_lm.sample_utils import make_sampler
@@ -508,7 +573,7 @@ class Engine:
         """語境解說：有 Qwen3 就用 Qwen3（照格式解說，約 2～4 秒），否則退回 Seed-X。"""
         if self.has_explainer and self._load_explainer():
             self._explain_qwen(job)
-        elif self.ready:
+        elif self.ready and not self.is_chat:
             self._explain_seedx(job)
         else:
             job.out.put({"done": True, "error": "解說模型沒有載入"})
@@ -523,9 +588,7 @@ class Engine:
             zh=f"目前的中文翻譯：{job.zh}\n" if job.zh else "",
             names=f"{'、'.join(names)} 是遊戲裡的人名，保留英文。\n" if names else "",
             check="；如果上面的中文翻譯有錯或不自然，順便指正" if job.zh else "")
-        prompt = self.ex_tok.apply_chat_template(
-            [{"role": "system", "content": EXPLAIN_SYSTEM}, {"role": "user", "content": user}],
-            add_generation_prompt=True, tokenize=False, enable_thinking=False)
+        prompt = self._chat(EXPLAIN_SYSTEM, user, explainer=True)
 
         def emit(raw):
             job.out.put({"zh": job.zh, "explanation": s2tw.convert(raw).strip()})

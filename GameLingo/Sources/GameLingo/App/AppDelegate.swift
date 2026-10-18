@@ -107,6 +107,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if ProcessInfo.processInfo.environment["GAMELINGO_DEBUG_REVIEW"] == "1" {
             studyWindows.showReview()  // 測試用：啟動就開複習視窗
         }
+        // 測試用：GAMELINGO_DEBUG_OVERLAY_LOOKUP=字 時 4 秒後在翻譯視窗查這個字（檢查視窗會不會被撐高）
+        if let w = ProcessInfo.processInfo.environment["GAMELINGO_DEBUG_OVERLAY_LOOKUP"] {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 4) { [weak self] in self?.lookupWord(w) }
+        }
 
         // 設定改了就套用（透明度；自動翻譯間隔與字級由各自的地方即時讀取）
         panel.alphaValue = AppSettings.panelOpacity
@@ -116,6 +120,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 guard let self else { return }
                 self.panel.alphaValue = AppSettings.panelOpacity
                 if self.model.auto != self.autoEnabled { self.setAuto(self.autoEnabled, announce: false) }
+                // 換了翻譯模型 → 重新啟動伺服器（OpenEmu 開著才馬上載入）
+                if let launched = self.server.launchedModel, launched != AppSettings.translationModel {
+                    appLog("切換翻譯模型：\(AppSettings.translationModel.rawValue)")
+                    self.explanationCache.removeAll()
+                    self.server.restart(loadModel: !AppSettings.releaseMemory || self.isOpenEmuRunning)
+                }
             }
             .store(in: &cancellables)
 

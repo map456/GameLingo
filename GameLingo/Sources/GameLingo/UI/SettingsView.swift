@@ -11,7 +11,8 @@ struct SettingsView: View {
     @AppStorage(AppSettings.Key.panelOpacity) private var opacity = 1.0
     @AppStorage(AppSettings.Key.releaseMemory) private var releaseMemory = true
     @AppStorage(AppSettings.Key.releaseDelayMinutes) private var releaseDelay = 1.0
-    @AppStorage(AppSettings.Key.spellingPractice) private var spellingPractice = true
+    @AppStorage(AppSettings.Key.spellingPractice) private var spellingPractice = false
+    @AppStorage(AppSettings.Key.newWordsPerDay) private var newWordsPerDay = 10
     @AppStorage(AppSettings.Key.spellingRepeats) private var spellingRepeats = 2
     @State private var launchAtLogin = AppSettings.launchAtLogin
     @State private var names = ""
@@ -67,7 +68,8 @@ struct SettingsView: View {
             }
 
             Section("單字卡複習") {
-                Toggle("按「忘記」後打字練習這個字", isOn: $spellingPractice)
+                Stepper("每天最多學 \(newWordsPerDay) 個新字", value: $newWordsPerDay, in: 1...50)
+                Toggle("答錯後照著打這個字（加強拼字）", isOn: $spellingPractice)
                 Stepper("要打對 \(spellingRepeats) 次", value: $spellingRepeats, in: 1...5)
                     .disabled(!spellingPractice)
             }

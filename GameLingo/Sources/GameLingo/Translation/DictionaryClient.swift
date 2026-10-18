@@ -28,6 +28,21 @@ struct DictionaryClient {
               let (data, _) = try? await URLSession.shared.data(from: url) else { return nil }
         return try? JSONDecoder().decode(WordInfo.self, from: data)
     }
+
+    /// 隨機常用字（單字卡選擇題的錯誤選項）
+    struct RandomWord: Decodable {
+        let word: String
+        let translation: [String]
+    }
+
+    func randomWords(_ n: Int) async -> [RandomWord] {
+        struct Reply: Decodable { let words: [RandomWord] }
+        var comps = URLComponents(url: baseURL.appendingPathComponent("random"), resolvingAgainstBaseURL: false)!
+        comps.queryItems = [URLQueryItem(name: "n", value: String(n))]
+        guard let url = comps.url,
+              let (data, _) = try? await URLSession.shared.data(from: url) else { return [] }
+        return (try? JSONDecoder().decode(Reply.self, from: data))?.words ?? []
+    }
 }
 
 /// 單字與整句發音（AVSpeechSynthesizer，系統內建英文語音）

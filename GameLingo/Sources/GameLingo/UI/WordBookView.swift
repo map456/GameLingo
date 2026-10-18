@@ -101,8 +101,10 @@ struct WordBookView: View {
     private func dueText(_ w: SavedWord) -> String {
         let today = Calendar.current.startOfDay(for: Date())
         let days = Calendar.current.dateComponents([.day], from: today, to: Calendar.current.startOfDay(for: w.nextDue)).day ?? 0
-        if days <= 0 { return "今天複習" }
-        return days == 1 ? "明天複習" : "\(days) 天後複習"
+        if w.firstReview == nil { return "新字・排隊中" }
+        let level = "第 \(w.level) 層・"
+        if days <= 0 { return level + "今天複習" }
+        return level + (days == 1 ? "明天複習" : "\(days) 天後複習")
     }
 }
 
@@ -111,6 +113,7 @@ struct WordBookView: View {
 final class StudyWindows {
     private let store: StudyStore
     private let lookup: WordLookup
+    private let dictionary: DictionaryClient
     private var reviewWindow: NSWindow?
     private var bookWindow: NSWindow?
     private var sizeObservation: NSKeyValueObservation?
@@ -118,6 +121,7 @@ final class StudyWindows {
     init(store: StudyStore, dictionary: DictionaryClient) {
         self.store = store
         self.lookup = WordLookup(client: dictionary)
+        self.dictionary = dictionary
     }
 
     /// 單字卡或單字本開著時，不要把焦點還給遊戲
@@ -129,7 +133,7 @@ final class StudyWindows {
         store.reload()
         // 每次開都重建內容，重新抓今天到期的卡片
         let w = reviewWindow ?? makeWindow(title: "單字卡複習", size: NSSize(width: 560, height: 500), autosave: "GameLingoReview")
-        let host = NSHostingController(rootView: FlashcardView(store: store, lookup: lookup))
+        let host = NSHostingController(rootView: FlashcardView(store: store, lookup: lookup, dictionary: dictionary))
         // SwiftUI 算出內容需要多高（翻面、查字時會變），視窗就跟著改高度，不用自己捲動
         host.sizingOptions = [.preferredContentSize]
         w.contentViewController = host

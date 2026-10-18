@@ -26,7 +26,7 @@ you saw them in. Learning from a story you care about sticks far better than mem
 - **Proper nouns stay in English** (placeholder protection plus your own name list).
 - **Click-to-define**: ECDICT definitions converted to Taiwan Traditional Chinese, pronunciation, and word-root breakdown (MorphoLex), e.g. `dis- + appear + -ance`.
 - **💡 Context explanation**: asks the model to explain the dialect, grammar and word choice of a line (about 15 s).
-- **Word book and flashcards**: meaning cards and cloze cards built from the game sentence, scheduled with SM-2, plus same-root word families. Type the answer on cloze cards, type a forgotten word to reinforce it, practise extra rounds without touching the schedule, and delete cards you no longer need.
+- **Word book and flashcards**: meaning cards and cloze cards built from the game sentence, scheduled with SM-2, plus same-root word families. Reviews follow a gentle retrieval-practice design: a three-level ladder per word (pick the meaning → pick the word for a cloze → type it with first-letter and length hints), automatic grading with a one-typo tolerance, missed words retried a few cards later in an easier form, a daily new-word cap, accuracy and streak stats, and extra practice rounds that never touch the schedule.
 - **Frees about 8 GB of memory** when OpenEmu is closed; settings window; launch at login.
 
 ### Requirements
@@ -150,24 +150,38 @@ App 用你的開發者憑證簽章，所以之後重新編譯也不用再授權�
 - **我的單字本（N 個）…**：列出所有收藏的單字、釋義和遊戲原句，可以搜尋、發音、刪除。
 - **單字卡複習（今天 N 張）…**：複習今天到期的單字卡（翻譯視窗上方的粉紫色「複習 N」也能直接點）。
 
-每個收藏的字有**兩種卡**，各自排程、交替出現（上方標籤會寫「意思」或「克漏字」）：
+複習是「**輕鬆版主動回想**」：每題都要先自己想，但以選擇題為主，大部分時候答得出來。每個字有一張**三層的階梯卡**，題型會隨熟練度變化（上方標籤會寫第幾層）：
 
-| 卡片 | 正面 | 要想的 |
+| 層級 | 題型 | 怎麼答 |
 | --- | --- | --- |
-| 意思卡 | 單字、音標、遊戲原句（該字以金色底線標出） | 中文意思 |
-| 克漏字卡 | 遊戲原句挖空（只露第一個字母，如 r＿＿＿＿＿＿）＋中文翻譯 | 空格裡的英文字 |
+| 第 1 層・選意思 | 英文單字＋遊戲原句，從 4 個中文意思選一個 | 按 1～4 或點選 |
+| 第 2 層・選單字 | 遊戲原句挖空＋中文翻譯，從 4 個英文字選一個（沒有原句時改看中文意思） | 按 1～4 或點選 |
+| 第 3 層・打單字 | 遊戲原句挖空，一直顯示首字母和字數（例如 `f _ _ _ _ _ _`） | 打字，按 Return 送出 |
 
-1. 看正面回想，按**空白鍵**翻面。
-2. 背面有中文釋義、**字根拆解**（藍＝字首、橘＝字根、綠＝字尾，例如 rest ＋ -ful 充滿…的）和**同字根家族**（★ 黃色是你單字本裡已收藏的字，灰色是字典裡同家族的字）。
-3. 依照記得的程度按 **1 忘記／2 困難／3 普通／4 簡單**，按鈕下方會顯示下次多久後再複習。
-4. 按「忘記」的卡會在這一輪最後再考一次，並要你在輸入框把這個字**打對 2 次**才換下一張（可按「略過」；設定裡可關閉或改次數）。
-5. **克漏字卡可以直接打答案**：游標會自動在輸入框裡，打完按 Return 會翻面並顯示答對或你打了什麼；想不起來就直接按 Return。
-6. 不想再複習的字，按右上角的**垃圾桶**刪除（意思卡和克漏字卡一起刪）。
-7. 今天的卡複習完，可以按「**只練忘記過的**」或「**全部再練一輪**」多練幾次。練習**不會改變**下次複習的日期。
+1. **新收藏的字從第 1 層開始**；同一層答對 2 次升一層，答錯降一層（不會一錯就打回原點）。
+2. **自動評分**，不用自己判斷熟不熟：答對算「普通」，打字只錯一個字母算「困難」（會標出正確拼法），答錯算「忘記」。按錯或打錯字時，可以按「**其實我會**」改判答對。
+3. **打單字打錯可以再打**：每打錯一次，提示就多露一個字母，最多試 3 次；第 2、3 次才打對算「困難」。錯 3 次或按「想不起來」會顯示答案，照著打一次才換下一題（這題算答錯）。
+4. 答錯的字會在**隔 3 題後用簡單一層的題型再考一次**（例如第 3 層答錯，就改用選擇題再考），讓你答對再結束。這次再考不影響排程。
+5. 作答後會顯示中文釋義、**字根拆解**（藍＝字首、橘＝字根、綠＝字尾）和**同字根家族**（★ 黃色是你單字本裡已收藏的字），句子裡的字也都可以點來查。
+6. 每天最多學 **10 個新字**（設定裡可改），超過的會排隊到明天。
+7. 右上角的**月亮**是「今天先到這裡」，剩下的明天再練，不扣分；**垃圾桶**可以把這個字從單字本刪除。
+8. 複習完會顯示**今天答對率、作答題數、連續複習天數**。還想多練，可以按「**只練忘記過的**」或「**全部再練一輪**」，練習**不會改變**下次複習的日期。
+
+**練習方式可以自己選**：複習視窗上方的「練習方式」列可以隨時切換，會記住你上次的選擇。
+
+| 練習方式 | 說明 |
+| --- | --- |
+| 自動（推薦） | 依每個字的層級出題，熟了自動升級 |
+| 選意思／選單字／打單字 | 每個字都用同一種題型（打單字＝克漏字打字，有首字母和字數提示） |
+| 翻卡自評 | 舊版玩法：看英文想中文，按空白鍵翻面，再自己按 1 忘記／2 困難／3 普通／4 簡單 |
+
+自己選固定方式時，只更新複習日期，不改變層級。
+
+舊版收藏的字會自動換算：複習過的字從第 2 或第 3 層開始，原本的複習日期保留。
 
 點遊戲裡的英文單字時，字卡上也會顯示字根拆解。
 
-排程用的是 SM-2：答對時間隔會越拉越長（1 天 → 6 天 → 約 15 天…），忘記就從頭開始。選單列圖示旁的數字是今天待複習的張數，翻譯視窗上方的粉紫色標籤也會顯示。遊玩時不會跳出提醒。
+排程用的是 SM-2：答對時間隔會越拉越長（1 天 → 6 天 → 約 15 天…），答錯就從頭開始。選單列圖示旁的數字是今天待複習的張數，翻譯視窗上方的粉紫色標籤也會顯示。遊玩時不會跳出提醒。
 
 ## 設定
 
@@ -179,6 +193,7 @@ App 用你的開發者憑證簽章，所以之後重新編譯也不用再授權�
 | 中文字級、英文字級、不透明度 | 翻譯視窗的外觀，改了立刻生效 |
 | 釋放記憶體 | OpenEmu 關閉後（立刻／1／5／15 分鐘）卸載翻譯模型，釋放約 8 GB；查字典、複習單字卡照常可用；開 OpenEmu 或按翻譯時自動載回（約幾秒） |
 | 登入時自動開啟 | 開機後自動啟動 GameLingo |
+| 單字卡複習 | 每天最多學幾個新字（預設 10）；答錯後要不要照著打這個字（預設關閉） |
 | 名字清單 | 直接在設定裡編輯、儲存 |
 
 ## 名字清單

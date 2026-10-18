@@ -23,6 +23,7 @@ Seed-X 串接要點（實測結果見 CLAUDE.md）：
 import argparse
 import json
 import queue
+import random
 import re
 import sqlite3
 import sys
@@ -175,6 +176,32 @@ def lookup(raw):
         if base and base.lower() != row["word"].lower():
             lemma = _dict_row(conn, base)
         return {"found": True, "query": w, **row, "lemma": lemma}
+    finally:
+        conn.close()
+
+
+_COMMON_ROWIDS = None  # 常用字（中考／高考／四級）的 rowid，選擇題的干擾選項用
+
+
+def random_words(n):
+    """隨機挑 n 個常用英文字（單一個字、有中文釋義），給單字卡選擇題當錯誤選項。"""
+    global _COMMON_ROWIDS
+    if not DICT_PATH.exists():
+        return []
+    conn = sqlite3.connect(f"file:{DICT_PATH}?mode=ro", uri=True)
+    try:
+        if _COMMON_ROWIDS is None:
+            _COMMON_ROWIDS = [r[0] for r in conn.execute(
+                "SELECT rowid FROM stardict WHERE (tag LIKE '%zk%' OR tag LIKE '%gk%' OR tag LIKE '%cet4%') "
+                "AND word GLOB '[a-z]*' AND word NOT LIKE '% %' AND word NOT LIKE '%-%' "
+                "AND translation IS NOT NULL AND translation <> ''")]
+        out = []
+        for rid in random.sample(_COMMON_ROWIDS, min(len(_COMMON_ROWIDS), n)):
+            word, tr = conn.execute("SELECT word, translation FROM stardict WHERE rowid = ?", (rid,)).fetchone()
+            lines = [s2twp.convert(x.strip()) for x in tr.replace("\\n", "\n").split("\n") if x.strip()]
+            if lines:
+                out.append({"word": word, "translation": lines})
+        return out
     finally:
         conn.close()
 
@@ -489,6 +516,11 @@ class Handler(BaseHTTPRequestHandler):
             from urllib.parse import parse_qs, urlparse
             word = parse_qs(urlparse(self.path).query).get("word", [""])[0]
             self._json(200, morph(word))
+            return
+        if self.path.startswith("/random"):
+            from urllib.parse import parse_qs, urlparse
+            n = int(parse_qs(urlparse(self.path).query).get("n", ["30"])[0])
+            self._json(200, {"words": random_words(max(1, min(100, n)))})
             return
         if self.path.startswith("/lookup"):
             from urllib.parse import parse_qs, urlparse
